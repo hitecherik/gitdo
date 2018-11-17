@@ -110,7 +110,7 @@ function getVerbNounPairs(tokens) {
   return verbNounPairs;
 }
 
-async function verbNounPairToCommand(verb, nouns, text) {
+async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
   verb = verb.toLowerCase();
   switch (verb) {
     case "commit":
@@ -122,6 +122,16 @@ async function verbNounPairToCommand(verb, nouns, text) {
         if (nouns[0].toLowerCase() == "everything") {
           files = ["-A"];
         }
+      } else {
+        let new_arr = [];
+        for (var file of files) {
+          if (file in file_mapping) {
+            new_arr.push(file_mapping[file])
+          } else {
+            new_arr.push(file);
+          }
+        }
+        files = new_arr
       }
 
       return verbCommandDict.commit(files);
@@ -181,6 +191,25 @@ function reduceSuggestions(suggestions) {
 
 async function processCommand(text) {
   text = text + '.';
+
+  let text_tokens = text.split(" ");
+
+  let file_mapping = {};
+  let new_text = [];
+  let i = 0;
+  for (t of text_tokens) {
+    if (/^[\w,\s-]+\.[A-Za-z]+/.test(t)) {
+      let file = "file" + i.toString();
+      file_mapping[file] = t;
+      i++;
+      new_text.push(file);
+    } else {
+      new_text.push(t);
+    }
+  }
+
+  text = new_text.join(" ");
+
   const tokens = await tokenalyzeSyntax(text);
 
   verbNounPairs = getVerbNounPairs(tokens);
@@ -189,7 +218,7 @@ async function processCommand(text) {
 
   for (verbId in verbNounPairs) {
     nouns = verbNounPairs[verbId].map(noun => noun.text.content);
-    const new_suggestion = await verbNounPairToCommand(tokens[verbId].text.content, nouns, text);
+    const new_suggestion = await verbNounPairToCommand(tokens[verbId].text.content, nouns, text, file_mapping);
     suggestions.push(new_suggestion);
   }
 
