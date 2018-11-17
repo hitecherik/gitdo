@@ -1,11 +1,13 @@
+const { LanguageServiceClient } = require('@google-cloud/language');
+
+let commits = 0;
+
 class Suggestion {
   constructor(commands, commitMessage = false) {
     this.commands = commands;
     this.commitMessage = commitMessage;
   }
 }
-
-const { LanguageServiceClient } = require('@google-cloud/language');
 
 const verbCommandDict = {
   /* Basics */
@@ -18,8 +20,8 @@ const verbCommandDict = {
 
   "push" : function() {
     return new Suggestion([
-      "git push"
-    ], true);
+      "git push -u origin $(git rev-parse --abbrev-ref HEAD)"
+    ], false);
   },
 
   /* Aliases */
@@ -80,7 +82,12 @@ function verbNounPairToCommand(verb, nouns) {
   verb = verb.toLowerCase();
   switch (verb) {
     case "commit":
-      var files = nouns;
+      if (commits++) {
+        throw "Too many commits -- you're only allowed to do one per \"git do\"";
+      }
+
+      let files = nouns;
+
       if (nouns.length == 0) {
         files = ["-A"];
       } else if (nouns.length == 1) {
@@ -88,6 +95,7 @@ function verbNounPairToCommand(verb, nouns) {
           files = ["-A"];
         }
       }
+
       return verbCommandDict[verb](files);
     case "push":
       return verbCommandDict[verb]();
@@ -127,7 +135,11 @@ function processCommand(text, callback) {
 
       callback(reduceSuggestions(suggestions));
     })
-    .catch(err => console.error(err));
+    .catch(err => {
+      console.error("Error executing:");
+      console.error(`    ${err}`);
+      process.exit(1);
+    });
 }
 
 module.exports = { Suggestion, processCommand };

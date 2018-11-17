@@ -10,12 +10,19 @@ const rl = readline.createInterface({
 });
 
 const command = process.argv[process.argv.length - 1];
-processCommand(command, (suggestion) => {
-  if (suggestion.commitMessage) {
-    console.log("Write a small summary of your changes: ");
 
-    rl.question("> ", answer => {
-      execute(suggestion.commands.map(c => c.replace("$MESSAGE", answer)), rl);
-    });
-  }
-});
+try {
+  processCommand(command, (suggestion) => {
+    if (suggestion.commitMessage) {
+      console.log("Write a small summary of your changes: ");
+
+      rl.question("> ", answer => {
+        execute(suggestion.commands.map(c => c.replace("$MESSAGE", answer)), rl);
+      });
+    }
+  });
+} catch (e) {
+  console.error("Error executing:");
+  console.error(`    ${e}`);
+  rl.close();
+}
