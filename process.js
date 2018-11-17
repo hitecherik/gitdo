@@ -11,17 +11,29 @@ class Suggestion {
 
 const verbCommandDict = {
   /* Basics */
-  "commit" : function(files) {
+  commit : function(files) {
     return new Suggestion([
       "git add " + files.join(" "),
       "git commit -m \"$MESSAGE\""
     ], true);
   },
 
-  "push" : function() {
+  push : function() {
     return new Suggestion([
       "git push -u origin $(git rev-parse --abbrev-ref HEAD)"
     ], false);
+  },
+
+  setname: function(name) {
+    return new Suggestion([
+      "git config user.name \"" + name + "\""
+    ], false)
+  },
+
+  setemail: function(email) {
+    return new Suggestion([
+      "git config user.email \"" + email + "\""
+    ], false)
   },
 
   /* Aliases */
@@ -36,7 +48,7 @@ const verbCommandDict = {
 // Creates a client
 const client = new LanguageServiceClient("./apikey.json");
 
-function tokenalyzeSyntax(text) {
+async function tokenalyzeSyntax(text) {
  // Prepares a document, representing the provided text
   const document = {
     content: text,
@@ -44,7 +56,36 @@ function tokenalyzeSyntax(text) {
   };
 
   // Detects syntax in the document
-  return client.analyzeSyntax({ document });
+  var tokens;
+
+  await client.analyzeSyntax({ document })
+    .then(results => {
+      const syntax = results[0];
+      tokens = syntax.tokens;
+    })
+    .catch(err => console.error(err));
+
+  return tokens;
+}
+
+async function tokenalyzeEntities(text) {
+  const document = {
+    content: text,
+    type: 'PLAIN_TEXT',
+  };
+  
+  var entities;
+
+  await client
+    .analyzeEntities({document: document})
+    .then(results => {
+      entities = results[0].entities;
+    })
+    .catch(err => {
+      console.error('ERROR:', err);
+    });
+
+  return entities;
 }
 
 function getVerbNounPairs(tokens) {
@@ -52,6 +93,11 @@ function getVerbNounPairs(tokens) {
   let i = 0;
   tokens.forEach(token => {
     if (token.partOfSpeech.tag == "NOUN") {
+
+      if (token.text.content.toLowerCase() == "push") {
+        verbNounPairs[i] = [];
+      }
+
       let cur = token;
       let index;
       while (index != (index = cur.dependencyEdge.headTokenIndex)) {
@@ -67,6 +113,7 @@ function getVerbNounPairs(tokens) {
         }
         cur = tokens[index];
       }
+
     } else if (token.partOfSpeech.tag == "VERB") {
       if (!(i in verbNounPairs)) {
         verbNounPairs[i] = [];
@@ -78,7 +125,7 @@ function getVerbNounPairs(tokens) {
   return verbNounPairs;
 }
 
-function verbNounPairToCommand(verb, nouns) {
+async function verbNounPairToCommand(verb, nouns, text) {
   verb = verb.toLowerCase();
   switch (verb) {
     case "commit":
@@ -95,13 +142,48 @@ function verbNounPairToCommand(verb, nouns) {
           files = ["-A"];
         }
       }
-
-      return verbCommandDict[verb](files);
+      
+      return verbCommandDict.commit(files);
     case "push":
-      return verbCommandDict[verb]();
+      return verbCommandDict.push();
+    case "set":
+      suggestions = [];
+
+      if (nounsContains(nouns, "email")) {
+        var regexEmail = /[a-z0-9\._%+!$&*=^|~#%'`?{}/\-]+@([a-z0-9\-]+\.){1,}([a-z]{2,16})/;
+        suggestions.push(verbCommandDict.setemail(text.match(regexEmail)[0]));
+      }
+
+      if (nounsContains(nouns, "name")) {
+        const entities = await tokenalyzeEntities(text);
+        suggestions.push(verbCommandDict.setname(getName(entities)));
+      }
+
+      return reduceSuggestions(suggestions);
+
     default:
       return new sugg.Suggestion([], false);
   }
+}
+
+function nounsContains(nouns, word) {
+  for (var n of nouns) {
+    if (n.toLowerCase() == word) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function getName(entities) {
+  for (var e of entities) {
+    if (e.type == "PERSON") {
+      return e.name;
+    }
+  }
+
+  throw "Name not found in text.";
 }
 
 function reduceSuggestions(suggestions) {
@@ -116,30 +198,21 @@ function reduceSuggestions(suggestions) {
   return new Suggestion(commands, commitMessage);
 }
 
-function processCommand(text, callback) {
+async function processCommand(text) {
   text = text + '.';
-  tokenalyzeSyntax(text)
-    .then(results => {
-      const syntax = results[0];
-      const tokens = syntax.tokens;
+  const tokens = await tokenalyzeSyntax(text);
 
-      verbNounPairs = getVerbNounPairs(tokens);
+  verbNounPairs = getVerbNounPairs(tokens);
 
-      suggestions = [];
+  suggestions = [];
 
-      for (verbId in verbNounPairs) {
-        nouns = verbNounPairs[verbId].map(noun => noun.text.content);
-        const new_suggestion = verbNounPairToCommand(tokens[verbId].text.content, nouns);
-        suggestions.push(new_suggestion);
-      }
+  for (verbId in verbNounPairs) {
+    nouns = verbNounPairs[verbId].map(noun => noun.text.content);
+    const new_suggestion = await verbNounPairToCommand(tokens[verbId].text.content, nouns, text);
+    suggestions.push(new_suggestion);
+  }
 
-      callback(reduceSuggestions(suggestions));
-    })
-    .catch(err => {
-      console.error("Error executing:");
-      console.error(`    ${err}`);
-      process.exit(1);
-    });
+  return reduceSuggestions(suggestions);
 }
 
 module.exports = { Suggestion, processCommand };
