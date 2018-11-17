@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/hitecherik/gitdo#readme",
   "dependencies": {
-    "@google-cloud/language": "^2.0.0"
+    "@google-cloud/language": "^2.0.0",
+    "request": "^2.88.0"
   }
 }
