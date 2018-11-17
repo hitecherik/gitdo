@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/hitecherik/gitdo/issues"
   },
-  "homepage": "https://github.com/hitecherik/gitdo#readme"
+  "homepage": "https://github.com/hitecherik/gitdo#readme",
+  "dependencies": {
+    "@google-cloud/language": "^2.0.0"
+  }
 }
