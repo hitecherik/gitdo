@@ -10,11 +10,12 @@ const rl = readline.createInterface({
 });
 
 const command = process.argv[process.argv.length - 1];
-const suggestion = processCommand(command);
+processCommand(command, (suggestion) => {
+  if (suggestion.commitMessage) {
+    console.log("Write a small summary of your changes: ");
 
-if (suggestion.commitMessage) {
-  console.log("Write a small summary of your changes: ")
-  rl.question("> ", answer => {
-    execute(suggestion.commands.map(c => c.replace("$MESSAGE", answer)), rl);
-  });
-}
+    rl.question("> ", answer => {
+      execute(suggestion.commands.map(c => c.replace("$MESSAGE", answer)), rl);
+    });
+  }
+});
