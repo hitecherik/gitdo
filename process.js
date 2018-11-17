@@ -45,12 +45,6 @@ function tokenalyzeSyntax(text) {
   return client.analyzeSyntax({ document });
 }
 
-function processSyntax(text) {
-  tokenalyze_syntax(text).then(result => {
-    console.log(getVerbNounPairs(result[0].tokens));
-  })
-}
-
 function getVerbNounPairs(tokens) {
   verbNounPairs = {};
   let i = 0;
@@ -83,12 +77,22 @@ function getVerbNounPairs(tokens) {
 }
 
 function verbNounPairToCommand(verb, nouns) {
-  console.log("RUNNING func");
+  verb = verb.toLowerCase();
   switch (verb) {
     case "commit":
-      return verbCommandDict[verb](nouns);
+      var files = nouns;
+      if (nouns.length == 0) {
+        files = ["-A"];
+      } else if (nouns.length == 1) {
+        if (nouns[0].toLowerCase() == "everything") {
+          files = ["-A"];
+        }
+      }
+      return verbCommandDict[verb](files);
     case "push":
       return verbCommandDict[verb]();
+    default:
+      return new sugg.Suggestion([], false);
   }
 }
 
@@ -105,6 +109,7 @@ function reduceSuggestions(suggestions) {
 }
 
 function processCommand(text, callback) {
+  text = text + '.';
   tokenalyzeSyntax(text)
     .then(results => {
       const syntax = results[0];
@@ -116,7 +121,6 @@ function processCommand(text, callback) {
 
       for (verbId in verbNounPairs) {
         nouns = verbNounPairs[verbId].map(noun => noun.text.content);
-        console.log(nouns);
         const new_suggestion = verbNounPairToCommand(tokens[verbId].text.content, nouns);
         suggestions.push(new_suggestion);
       }
