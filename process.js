@@ -185,7 +185,7 @@ async function processCommand(text) {
 
   verbNounPairs = getVerbNounPairs(tokens);
 
-  suggestions = [];
+  let suggestions = [];
 
   for (verbId in verbNounPairs) {
     nouns = verbNounPairs[verbId].map(noun => noun.text.content);
