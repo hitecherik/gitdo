@@ -1,5 +1,6 @@
 const { LanguageServiceClient } = require('@google-cloud/language');
 const { retrieveGitignore } = require("./gitignore.js");
+const glob = require("glob");
 
 class Suggestion {
   constructor(commands, commitMessage = 0) {
@@ -64,6 +65,10 @@ const verbCommandDict = {
 
   switchbranch: function(name) {
     return new Suggestion(["git fetch --all", `git checkout ${name}`]);
+  },
+
+  initrepo: function() {
+    return new Suggestion(["git init"]);
   }
 
 }
@@ -219,19 +224,27 @@ async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
   verb = verb.toLowerCase();
 
   switch (verb) {
+    case "add" :
+      // continues to commit
     case "commit":
       let files = nouns;
 
       if (nouns.length == 0) {
         files = ["-A"];
-      } else if (nouns.length == 1) {
-        if (nouns[0].toLowerCase() == "everything" || nouns[0].toLowerCase() == "all") {
-          files = ["-A"];
-        }
+      } else if (nouns.indexOf("everything") > -1 || nouns.indexOf("all") > -1) {
+        files = ["-A"];
       } else {
         let new_arr = [];
         for (var file of files) {
           if (file in file_mapping) {
+            if (file_mapping[file] == "images" || file_mapping[file] == "pictures") {
+              glob("**/*.png", function (er, files) {
+                new_arr.concat(files);
+              });
+              glob("**/*.jpg", function (er, files) {
+                new_arr.concat(files);
+              });
+            }
             new_arr.push(file_mapping[file])
           } else {
             new_arr.push(file);
@@ -311,7 +324,7 @@ function createSuggestion(nouns) {
       predicted.log = true;
     }
 
-    if (n.toLowerCase() == "repository") {
+    if (n.toLowerCase() == "repository" || n.toLowerCase() == "repo" ) {
       suggestions.push(verbCommandDict.initrepo(nouns[i + 1]));
     }
   }
