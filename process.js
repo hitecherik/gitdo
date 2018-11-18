@@ -217,6 +217,7 @@ function getPredictedSuggestion(prediction) {
 
 async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
   verb = verb.toLowerCase();
+
   switch (verb) {
     case "commit":
       let files = nouns;
@@ -270,10 +271,15 @@ async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
         return verbCommandDict.gitignore();
       }
 
+    case "sync":
+      return verbCommandDict.sync();
+
     default:
       if (nouns.filter(n => n.toLowerCase() == "sync").length > 0) {
         return verbCommandDict.sync();
       }
+
+      console.dir(nouns);
 
       return new Suggestion([]);
   }
