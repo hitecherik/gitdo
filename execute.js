@@ -10,10 +10,10 @@ function _execute(commands) {
       console.error(`There was an error: ${error.toString()}\n`);
     }
 
-    console.log("\n    " + stdout.replace("\n", "\n    "));
+    console.log("\n    " + stdout.replace(/\n/g, "\n    "));
 
     if (stderr.length > 0) {
-      console.error(stdout.replace("\n", "\n    "));
+      console.error("\n    " + stderr.replace(/\n/g, "\n    "));
     }
   });
 }
