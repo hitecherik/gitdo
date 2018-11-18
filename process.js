@@ -317,8 +317,6 @@ async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
         return verbCommandDict.sync();
       }
 
-      console.dir(nouns);
-
       return new Suggestion([]);
   }
 }
@@ -388,7 +386,6 @@ function reduceSuggestions(suggestions) {
 }
 
 async function processCommand(text) {
-
   let text_tokens = text.split(/(,|\.)?( |$)/);
 
   let file_mapping = {};
