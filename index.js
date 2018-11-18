@@ -1,16 +1,11 @@
 #!/usr/bin/env node
 
-const readline = require("readline");
 const { processCommand } = require("./process.js");
 const { execute } = require("./execute.js");
+const { question } = require("readline-sync");
 
 
 async function main() {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-
   const command = process.argv[process.argv.length - 1];
   let suggestion;
 
@@ -22,16 +17,25 @@ async function main() {
     process.exit(1);
   }
 
-  const suggestion = await processCommand(command);
-
   if (suggestion.commitMessage) {
-    console.log("Write a small summary of your changes: ");
+    const quantified = suggestion.commitMessage == 1 ? "a small summary" : "small summaries";
+    console.log(`Write ${quantified} of your changes: `);
 
-    rl.question("> ", answer => {
-      execute(suggestion.commands.map(c => c.replace("$MESSAGE", answer)), rl);
-    });
+    let messages = [];
+
+    for (let i = 0; i < suggestion.commitMessage; i++) {
+      messages.push(question(`${i + 1} > `));
+    }
+
+    execute(suggestion.commands.map(c => {
+      if (c.includes("$MESSAGE")) {
+        return c.replace("$MESSAGE", messages.shift());
+      }
+
+      return c;
+    }));
   } else {
-    execute(suggestion.commands, rl);
+    execute(suggestion.commands);
   }
 }
 

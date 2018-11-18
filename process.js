@@ -1,47 +1,32 @@
 const { LanguageServiceClient } = require('@google-cloud/language');
 
-let commits = 0;
-
 class Suggestion {
-  constructor(commands, commitMessage = false) {
+  constructor(commands, commitMessage = 0) {
     this.commands = commands;
     this.commitMessage = commitMessage;
   }
 }
 
 const verbCommandDict = {
-  /* Basics */
-  commit : function(files) {
+  commit: function(files) {
     return new Suggestion([
       "git add " + files.join(" "),
       "git commit -m \"$MESSAGE\""
-    ], true);
+    ], 1);
   },
 
-  push : function() {
+  push: function() {
     return new Suggestion([
       "git push -u origin $(git rev-parse --abbrev-ref HEAD)"
-    ], false);
+    ]);
   },
 
   setname: function(name) {
-    return new Suggestion([
-      "git config user.name \"" + name + "\""
-    ], false)
+    return new Suggestion([`git config user.name "${name}"`]);
   },
 
   setemail: function(email) {
-    return new Suggestion([
-      "git config user.email \"" + email + "\""
-    ], false)
-  },
-
-  /* Aliases */
-  "upload": function () {
-    commands = verb_command_dict.commit("-A").commands;
-    commnads = commands.concat(verb_command_dict.push());
-
-    return new Suggestion(commands, true);
+    return new Suggestion([`git config user.email ${email}`]);
   }
 }
 
@@ -73,7 +58,7 @@ async function tokenalyzeEntities(text) {
     content: text,
     type: 'PLAIN_TEXT',
   };
-  
+
   var entities;
 
   await client
@@ -129,10 +114,6 @@ async function verbNounPairToCommand(verb, nouns, text) {
   verb = verb.toLowerCase();
   switch (verb) {
     case "commit":
-      if (commits++) {
-        throw "Too many commits -- you're only allowed to do one per \"git do\"";
-      }
-
       let files = nouns;
 
       if (nouns.length == 0) {
@@ -142,7 +123,7 @@ async function verbNounPairToCommand(verb, nouns, text) {
           files = ["-A"];
         }
       }
-      
+
       return verbCommandDict.commit(files);
     case "push":
       return verbCommandDict.push();
@@ -188,11 +169,11 @@ function getName(entities) {
 
 function reduceSuggestions(suggestions) {
   let commands = [];
-  let commitMessage = false;
+  let commitMessage = 0;
 
   for (let suggestion of suggestions) {
     commands = commands.concat(suggestion.commands);
-    commitMessage = commitMessage || suggestion.commitMessage;
+    commitMessage += suggestion.commitMessage;
   }
 
   return new Suggestion(commands, commitMessage);

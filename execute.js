@@ -1,6 +1,8 @@
 const exec = require("child_process").exec;
+const { question } = require("readline-sync");
 
-function _execute(commands, callback) {
+
+function _execute(commands) {
   const command = commands.join(" && ");
 
   exec(command, (error, stdout, stderr) => {
@@ -13,12 +15,10 @@ function _execute(commands, callback) {
     if (stderr.length > 0) {
       console.error(stdout.replace("\n", "\n    "));
     }
-
-    callback();
   });
 }
 
-function execute(commands, rl, confirm = true) {
+function execute(commands, confirm = true) {
   console.log("\nThese are the commands we've generated: \n");
 
   for (let command of commands) {
@@ -27,26 +27,23 @@ function execute(commands, rl, confirm = true) {
 
   console.log("");
 
-  rl.question("Should we execute these commands? [Y/n] ", answer => {
-    const choice = answer.length == 0 ? 'y' : answer.toLowerCase()[0];
+  const answer = commands ? question("Should we execute these commands? [Y/n] ").toLowerCase() : 'y';
+  const choice = answer.length == 0 ? 'y' : answer[0];
 
-    switch(choice) {
-      case 'y':
-        console.log("Executing...");
-        _execute(commands, () => rl.close());
-        return;
+  switch(choice) {
+    case 'y':
+      console.log("Executing...");
+      _execute(commands);
+      return;
 
-      case 'n':
-        console.log("Cancelling...");
-        break;
+    case 'n':
+      console.log("Cancelling...");
+      break;
 
-      default:
-        console.log(`We couldn't understand "${answer}". Cancelling...`);
-        break;
-    }
-
-    rl.close();
-  });
+    default:
+      console.log(`We couldn't understand "${answer}". Cancelling...`);
+      break;
+  }
 }
 
 module.exports = { execute };
