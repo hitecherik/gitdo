@@ -266,6 +266,15 @@ async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
     case "make":
       return createSuggestion(nouns);
 
+    case "switch":
+      return changeBranchSuggestion(nouns);
+
+    case "change":
+      return changeBranchSuggestion(nouns);
+
+    case "go":
+      return changeBranchSuggestion(nouns);
+
     case "ignore":
       if (await retrieveGitignore(nouns.map(n => n.toLowerCase()))) {
         return verbCommandDict.gitignore();
@@ -297,6 +306,20 @@ function createSuggestion(nouns) {
 
     if (n.toLowerCase() == "repository") {
       suggestions.push(verbCommandDict.initrepo(nouns[i + 1]));
+    }
+  }
+
+  return reduceSuggestions(suggestions);
+}
+
+function changeBranchSuggestion(nouns) {
+  suggestions = [];
+
+  let i = 0;
+  for (n of nouns) {
+    if (n.toLowerCase() == "branch") {
+      suggestions.push(verbCommandDict.switchbranch(nouns[i + 1]));
+      predicted.log = true;
     }
   }
 
