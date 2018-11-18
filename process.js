@@ -32,7 +32,36 @@ const verbCommandDict = {
 
   gitignore: function() {
     return new Suggestion([`git add .gitignore`]);
+  },
+  
+  pull: function() {
+    return new Suggestion(["git pull"]);
+  },
+
+  log: function() {
+    return new Suggestion(["git log"]);
+  },
+
+  diff: function() {
+    return new Suggestion(["git diff"]);
+  },
+
+  status: function() {
+    return new Suggestion(["git status"]);
+  },
+
+  stash: function() {
+    return new Suggestion(["git stash"]);
+  },
+
+  createbranch: function(name) {
+    return new Suggestion([`git branch -b ${name}`]);
+  },
+
+  switchbranch: function(name) {
+    return new Suggestion(["git fetch --all", `git checkout ${name}`]);
   }
+
 }
 
 // Creates a client
@@ -78,6 +107,34 @@ async function tokenalyzeEntities(text) {
   return entities;
 }
 
+const automl = require('@google-cloud/automl');
+
+const automl_client = new automl.v1beta1.PredictionServiceClient({
+  // optional auth parameters.
+});
+
+const formattedName = automl_client.modelPath('gitdo-222813', 'us-central1', 'TCN2677408050797652826');
+
+async function predict(text) {
+  var results;
+  
+  const request = {
+    name: formattedName,
+    payload: {'textSnippet': {'content': text, 'mimeType': 'text/plain' }},
+  };
+
+  await automl_client.predict(request)
+    .then(responses => {
+      results = responses[0];
+    })
+    .catch(err => {
+      console.error(err);
+    });
+  
+  
+  return results;
+}
+
 function getVerbNounPairs(tokens) {
   verbNounPairs = {};
   let i = 0;
@@ -115,6 +172,45 @@ function getVerbNounPairs(tokens) {
   return verbNounPairs;
 }
 
+let predicted = {};
+
+function getPredictedSuggestion(prediction) {
+  let commands = [];
+  for (p of prediction.payload) {
+    if (predicted[p.displayName] != true && p.classification.score > 0.3) {
+      predicted[p.displayName] = true;
+      switch (p.displayName) {
+        case "log": {
+          commands.push(verbCommandDict.log());
+          break;
+        }
+        case "pull": {
+          commands.push(verbCommandDict.pull());
+          break;
+        }
+        case "status": {
+          commands.push(verbCommandDict.status());
+          break;
+        }
+        case "push": {
+          commands.push(verbCommandDict.push());
+          break;
+        }
+        case "stash": {
+          commands.push(verbCommandDict.stash());
+          break;
+        }
+        case "diff": {
+          commands.push(verbCommandDict.diff());
+          break;
+        }
+      }
+    }
+  }
+  
+  return reduceSuggestions(commands);
+}
+
 async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
   verb = verb.toLowerCase();
   switch (verb) {
@@ -141,7 +237,9 @@ async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
 
       return verbCommandDict.commit(files);
     case "push":
+      predicted.push = true;
       return verbCommandDict.push();
+
     case "set":
       suggestions = [];
 
@@ -157,14 +255,38 @@ async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
 
       return reduceSuggestions(suggestions);
 
+    case "create":
+      return createSuggestion(nouns);
+    
+    case "make":
+      return createSuggestion(nouns);
+
     case "ignore":
       if (await retrieveGitignore(nouns.map(n => n.toLowerCase()))) {
         return verbCommandDict.gitignore();
       }
 
     default:
-      return new Suggestion([], false);
+      return new Suggestion([]);
   }
+}
+
+function createSuggestion(nouns) {
+  suggestions = [];
+
+  let i = 0;
+  for (n of nouns) {
+    if (n.toLowerCase() == "branch") {
+      suggestions.push(verbCommandDict.createbranch(nouns[i + 1]));
+      predicted.log = true;
+    } 
+
+    if (n.toLowerCase() == "repository") {
+      suggestions.push(verbCommandDict.initrepo(nouns[i + 1]))
+    }
+  }
+
+  return reduceSuggestions(suggestions);
 }
 
 function nounsContains(nouns, word) {
@@ -200,6 +322,10 @@ function reduceSuggestions(suggestions) {
 }
 
 async function processCommand(text) {
+
+  const tokensPromise = tokenalyzeSyntax(text);
+  const predictedPromise = predict(text);
+
   text = text + '.';
 
   let text_tokens = text.split(/,? /);
@@ -220,8 +346,7 @@ async function processCommand(text) {
 
   text = new_text.join(" ");
 
-  const tokens = await tokenalyzeSyntax(text);
-
+  const tokens = await tokensPromise;
   verbNounPairs = getVerbNounPairs(tokens);
 
   let suggestions = [];
@@ -231,6 +356,9 @@ async function processCommand(text) {
     const new_suggestion = await verbNounPairToCommand(tokens[verbId].text.content, nouns, text, file_mapping);
     suggestions.push(new_suggestion);
   }
+
+  const predicted = await predictedPromise;
+  suggestions.push(getPredictedSuggestion(predicted));
 
   return reduceSuggestions(suggestions);
 }
