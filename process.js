@@ -177,7 +177,7 @@ let predicted = {};
 function getPredictedSuggestion(prediction) {
   let commands = [];
   for (p of prediction.payload) {
-    if (predicted[p.displayName] != true && p.classification.score > 0.3) {
+    if (predicted[p.displayName] != true && p.classification.score > 0.7) {
       predicted[p.displayName] = true;
       switch (p.displayName) {
         case "log": {
@@ -216,8 +216,6 @@ async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
   switch (verb) {
     case "commit":
       let files = nouns;
-
-      console.log(nouns);
 
       if (nouns.length == 0) {
         files = ["-A"];
