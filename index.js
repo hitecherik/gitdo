@@ -9,7 +9,7 @@ async function main() {
   const command = process.argv[process.argv.length - 1];
   let suggestion;
 
-  if (command.includes("git-do") || command.includes("index.js")) {
+  if (command.toLowerCase().includes("git-do") || command.toLowerCase().includes("index.js")) {
     console.error("Please enter an input.");
     process.exit(1);
   }
@@ -23,7 +23,8 @@ async function main() {
   }
 
   if (suggestion.commands.length == 0) {
-    throw "We couldn't recognize your command -- perhaps try being more explicit?";
+    console.error("We couldn't recognize your command -- perhaps try being more explicit?");
+    process.exit(1);
   }
 
   if (suggestion.commitMessage) {
