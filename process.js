@@ -367,12 +367,7 @@ function reduceSuggestions(suggestions) {
 
 async function processCommand(text) {
 
-  text = text + '.';
-
-  const tokensPromise = tokenalyzeSyntax(text);
-  const predictedPromise = predict(text);
-
-  let text_tokens = text.split(/,? /);
+  let text_tokens = text.split(/(,|\.)?( |$)/);
 
   let file_mapping = {};
   let new_text = [];
@@ -388,7 +383,10 @@ async function processCommand(text) {
     }
   }
 
-  text = new_text.join(" ");
+  text = new_text.join(" ") + ".";
+
+  const tokensPromise = tokenalyzeSyntax(text);
+  const predictedPromise = predict(text);
 
   const tokens = await tokensPromise;
   verbNounPairs = getVerbNounPairs(tokens);
