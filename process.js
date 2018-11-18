@@ -59,7 +59,7 @@ const verbCommandDict = {
   },
 
   createbranch: function(name) {
-    return new Suggestion([`git branch -b ${name}`]);
+    return new Suggestion([`git  -b ${name}`]);
   },
 
   switchbranch: function(name) {
@@ -296,7 +296,7 @@ function createSuggestion(nouns) {
     }
 
     if (n.toLowerCase() == "repository") {
-      suggestions.push(verbCommandDict.initrepo(nouns[i + 1]))
+      suggestions.push(verbCommandDict.initrepo(nouns[i + 1]));
     }
   }
 
