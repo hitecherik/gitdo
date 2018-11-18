@@ -32,6 +32,10 @@ const verbCommandDict = {
 
   gitignore: function() {
     return new Suggestion([`git add .gitignore`]);
+  },
+
+  sync: function() {
+    return new Suggestion([`git push && git pull || { git pull --no-edit && git push }`]);
   }
 }
 
@@ -67,7 +71,7 @@ async function tokenalyzeEntities(text) {
   var entities;
 
   await client
-    .analyzeEntities({document: document})
+    .analyzeEntities({ document })
     .then(results => {
       entities = results[0].entities;
     })
@@ -83,13 +87,13 @@ function getVerbNounPairs(tokens) {
   let i = 0;
   tokens.forEach(token => {
     if (token.partOfSpeech.tag == "NOUN") {
-
       if (token.text.content.toLowerCase() == "push") {
         verbNounPairs[i] = [];
       }
 
       let cur = token;
       let index;
+
       while (index != (index = cur.dependencyEdge.headTokenIndex)) {
         if (tokens[index].partOfSpeech.tag == "VERB") {
           if (cur.partOfSpeech.tag == "NOUN") {
@@ -101,9 +105,9 @@ function getVerbNounPairs(tokens) {
             }
           }
         }
+
         cur = tokens[index];
       }
-
     } else if (token.partOfSpeech.tag == "VERB") {
       if (!(i in verbNounPairs)) {
         verbNounPairs[i] = [];
@@ -163,6 +167,9 @@ async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
       }
 
     default:
+      if (nouns.filter(n => n.toLowerCase() == "sync").length > 0) {
+        return verbCommandDict.sync();
+      }
       return new Suggestion([], false);
   }
 }
