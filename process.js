@@ -331,7 +331,7 @@ function createSuggestion(nouns) {
       predicted.log = true;
     }
 
-    if (n.toLowerCase() == "repository" || n.toLowerCase() == "repo" ) {
+    if (n.toLowerCase() == "repository" || n.toLowerCase() == "repo" || n.toLowerCase() == "project" ) {
       suggestions.push(verbCommandDict.initrepo(nouns[i + 1]));
     }
   }
