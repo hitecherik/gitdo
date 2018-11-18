@@ -1,4 +1,5 @@
 const { LanguageServiceClient } = require('@google-cloud/language');
+const { retrieveGitignore } = require("./gitignore.js");
 
 class Suggestion {
   constructor(commands, commitMessage = 0) {
@@ -27,6 +28,10 @@ const verbCommandDict = {
 
   setemail: function(email) {
     return new Suggestion([`git config user.email ${email}`]);
+  },
+
+  gitignore: function() {
+    return new Suggestion([`git add .gitignore`]);
   }
 }
 
@@ -152,8 +157,13 @@ async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
 
       return reduceSuggestions(suggestions);
 
+    case "ignore":
+      if (await retrieveGitignore(nouns.map(n => n.toLowerCase()))) {
+        return verbCommandDict.gitignore();
+      }
+
     default:
-      return new sugg.Suggestion([], false);
+      return new Suggestion([], false);
   }
 }
 
@@ -192,7 +202,7 @@ function reduceSuggestions(suggestions) {
 async function processCommand(text) {
   text = text + '.';
 
-  let text_tokens = text.split(" ");
+  let text_tokens = text.split(/,? /);
 
   let file_mapping = {};
   let new_text = [];

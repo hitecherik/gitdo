@@ -1,4 +1,4 @@
-const request = require("request");
+const request = require("request-promise-native");
 const fs = require("fs");
 
 const TYPES = ["1c","1c-bitrix","a-frame","actionscript","ada","adobe","advancedinstaller","agda","al",
@@ -50,14 +50,11 @@ const TYPES = ["1c","1c-bitrix","a-frame","actionscript","ada","adobe","advanced
                "yeoman","yii","yii2","zendframework","zephir","zukencr8000"];
 const API = "https://www.gitignore.io/api/"
 
-function retrieveGitignore(formats, callback) {
+async function retrieveGitignore(formats, callback) {
   const name = formats.filter(f => TYPES.includes(f)).join(",");
 
   if (name.length > 0) {
-    request
-      .get(API + name)
-      .pipe(fs.createWriteStream(".gitignore"))
-      .on("complete", () => callback());
+    await request.get(API + name).pipe(fs.createWriteStream(".gitignore"));
 
     return true;
   }
