@@ -59,7 +59,7 @@ const verbCommandDict = {
   },
 
   createbranch: function(name) {
-    return new Suggestion([`git  -b ${name}`]);
+    return new Suggestion([`git checkout -b ${name}`]);
   },
 
   switchbranch: function(name) {
@@ -153,14 +153,14 @@ function getVerbNounPairs(tokens) {
 
       while (index != (index = cur.dependencyEdge.headTokenIndex)) {
         if (tokens[index].partOfSpeech.tag == "VERB") {
-          if (cur.partOfSpeech.tag == "NOUN") {
+          // if (cur.partOfSpeech.tag == "NOUN") {
             if (index in verbNounPairs) {
               verbNounPairs[index].push(token);
             } else {
               verbNounPairs[index] = [];
               verbNounPairs[index].push(token);
             }
-          }
+          // }
         }
 
         cur = tokens[index];
@@ -225,7 +225,7 @@ async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
       if (nouns.length == 0) {
         files = ["-A"];
       } else if (nouns.length == 1) {
-        if (nouns[0].toLowerCase() == "everything") {
+        if (nouns[0].toLowerCase() == "everything" || nouns[0].toLowerCase() == "all") {
           files = ["-A"];
         }
       } else {
@@ -273,6 +273,9 @@ async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
       return changeBranchSuggestion(nouns);
 
     case "go":
+      return changeBranchSuggestion(nouns);
+
+    case "enter":
       return changeBranchSuggestion(nouns);
 
     case "ignore":
