@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/hitecherik/gitdo#readme",
   "dependencies": {
+    "@google-cloud/automl": "^0.1.2",
     "@google-cloud/language": "^2.0.0",
     "readline-sync": "^1.4.9",
     "request": "^2.88.0",
