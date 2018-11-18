@@ -35,7 +35,7 @@ const verbCommandDict = {
   },
 
   sync: function() {
-    return new Suggestion([`git push && git pull || { git pull --no-edit && git push }`]);
+    return new Suggestion([`git push && git pull || { git pull --no-edit && git push; }`]);
   },
 
   pull: function() {
