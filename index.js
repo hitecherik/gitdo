@@ -9,12 +9,21 @@ async function main() {
   const command = process.argv[process.argv.length - 1];
   let suggestion;
 
+  if (command.includes("git-do") || command.includes("index.js")) {
+    console.error("Please enter an input.");
+    process.exit(1);
+  }
+
   try {
     suggestion = await processCommand(command);
   } catch (e) {
     console.error("Error executing:");
     console.error(`    ${e}`);
     process.exit(1);
+  }
+
+  if (suggestion.commands.length == 0) {
+    throw "We couldn't recognize your command -- perhaps try being more explicit?";
   }
 
   if (suggestion.commitMessage) {

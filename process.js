@@ -1,6 +1,6 @@
 const { LanguageServiceClient } = require('@google-cloud/language');
 const { retrieveGitignore } = require("./gitignore.js");
-const glob = require("glob");
+const fs = require('fs');
 
 class Suggestion {
   constructor(commands, commitMessage = 0) {
@@ -69,6 +69,10 @@ const verbCommandDict = {
 
   initrepo: function() {
     return new Suggestion(["git init"]);
+  },
+
+  merge: function(branchname) {
+    return new Suggestion([`git merge ${branchname}`]);
   }
 
 }
@@ -228,6 +232,7 @@ async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
       // continues to commit
     case "commit":
       let files = nouns;
+      let addedAllImages = false;
 
       if (nouns.length == 0) {
         files = ["-A"];
@@ -237,17 +242,18 @@ async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
         let new_arr = [];
         for (var file of files) {
           if (file in file_mapping) {
-            if (file_mapping[file] == "images" || file_mapping[file] == "pictures") {
-              glob("**/*.png", function (er, files) {
-                new_arr.concat(files);
-              });
-              glob("**/*.jpg", function (er, files) {
-                new_arr.concat(files);
-              });
-            }
             new_arr.push(file_mapping[file])
           } else {
-            new_arr.push(file);
+            if (!addedAllImages && (file.toLowerCase() == "images" || file.toLowerCase() == "pictures")) {
+              addedAllImages = true;
+              fs.readdirSync("./").forEach(file => {
+                if (/.+\.(ase|art|bmp|blp|cd5|cit|cpt|cr2|cut|dds|dib|djvu|egt|exif|gif|gpl|grf|icns|ico|iff|jng|jpeg|jpg|jfif|jp2|jps|lbm|max|miff|mng|msp|nitf|ota|pbm|pc1|pc2|pc3|pcf|pcx|pdn|pgm|PI1|PI2|PI3|pict|pct|pnm|pns|ppm|psb|psd|pdd|psp|px|pxm|pxr|qfx|raw|rle|sct|sgi|rgb|int|bw|tga|tiff|tif|vtf|xbm|xcf|xpm|3dv|amf|ai|awg|cgm|cdr|cmx|dxf|e2d|egt|eps|fs|gbr|odg|svg|stl|vrml|x3d|sxd|v2d|vnd|wmf|emf|art|xar|png|webp|jxr|hdp|wdp|cur|ecw|iff|lbm|liff|nrrd|pam|pcx|pgf|sgi|rgb|rgba|bw|int|inta|sid|ras|sun|tga)/.test(file)) {
+                  new_arr.push(file);
+                }
+              });
+            } else {
+              new_arr.push(file);
+            }
           }
         }
         files = new_arr
@@ -301,14 +307,15 @@ async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
       predicted.push = true;
       return verbCommandDict.sync();
 
+    case "merge":
+      return verbCommandDict.merge();
+
     default:
       if (nouns.filter(n => n.toLowerCase() == "sync").length > 0) {
         predicted.pull = true;
         predicted.push = true;
         return verbCommandDict.sync();
       }
-
-      console.dir(nouns);
 
       return new Suggestion([]);
   }
@@ -379,7 +386,6 @@ function reduceSuggestions(suggestions) {
 }
 
 async function processCommand(text) {
-
   let text_tokens = text.split(/(,|\.)?( |$)/);
 
   let file_mapping = {};
