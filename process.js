@@ -35,7 +35,7 @@ const verbCommandDict = {
   },
 
   sync: function() {
-    return new Suggestion([`git push && git pull || { git pull --no-edit && git push; }`]);
+    return new Suggestion([`git push -u origin $(git rev-parse --abbrev-ref HEAD) && git pull || { git pull --no-edit && git push -u origin $(git rev-parse --abbrev-ref HEAD); }`]);
   },
 
   pull: function() {
@@ -284,10 +284,14 @@ async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
       }
 
     case "sync":
+      predicted.pull = true;
+      predicted.push = true;
       return verbCommandDict.sync();
 
     default:
       if (nouns.filter(n => n.toLowerCase() == "sync").length > 0) {
+        predicted.pull = true;
+        predicted.push = true;
         return verbCommandDict.sync();
       }
 
