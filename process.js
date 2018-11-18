@@ -217,6 +217,8 @@ async function verbNounPairToCommand(verb, nouns, text, file_mapping) {
     case "commit":
       let files = nouns;
 
+      console.log(nouns);
+
       if (nouns.length == 0) {
         files = ["-A"];
       } else if (nouns.length == 1) {
@@ -323,10 +325,10 @@ function reduceSuggestions(suggestions) {
 
 async function processCommand(text) {
 
+  text = text + '.';
+
   const tokensPromise = tokenalyzeSyntax(text);
   const predictedPromise = predict(text);
-
-  text = text + '.';
 
   let text_tokens = text.split(/,? /);
 
